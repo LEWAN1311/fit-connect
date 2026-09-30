@@ -1,0 +1,64 @@
+# Prerequis : mvn clean package -DskipTests   (les images copient les jars de target/)
+# Lancement  : docker compose up --build
+services:
+
+  eureka-server:
+    build: ./eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+
+  config-server:
+    build: ./config-server
+    container_name: config-server
+    ports:
+      - "8888:8888"
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment: &client-env
+      EUREKA_URI: http://eureka-server:8761/eureka/
+      CONFIG_SERVER_URI: http://config-server:8888
+      # Echec au demarrage si le config-server n'est pas encore pret : le conteneur redemarre
+      SPRING_CLOUD_CONFIG_FAIL_FAST: "true"
+    depends_on: [eureka-server, config-server]
+    restart: on-failure
+
+  class-service:
+    build: ./class-service
+    container_name: class-service
+    ports:
+      - "8091:8091"
+    environment: *client-env
+    depends_on: [eureka-server, config-server]
+    restart: on-failure
+
+  booking-service:
+    build: ./booking-service
+    container_name: booking-service
+    ports:
+      - "8092:8092"
+    environment: *client-env
+    depends_on: [eureka-server, config-server]
+    restart: on-failure
+
+  payment-service:
+    build: ./payment-service
+    container_name: payment-service
+    ports:
+      - "8093:8093"
+    environment: *client-env
+    depends_on: [eureka-server, config-server]
+    restart: on-failure
+
+  notification-service:
+    build: ./notification-service
+    container_name: notification-service
+    ports:
+      - "8094:8094"
+    environment: *client-env
+    depends_on: [eureka-server, config-server]
+    restart: on-failure
