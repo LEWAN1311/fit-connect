@@ -2,7 +2,7 @@ spring:
   application:
     name: booking-service
   config:
-    import: "optional:configserver:http://localhost:8888"
+    import: "optional:configserver:${CONFIG_SERVER_URI:http://localhost:8888}"
   datasource:
     url: jdbc:h2:mem:bookingdb;DB_CLOSE_DELAY=-1
   h2:
@@ -13,6 +13,14 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+  cloud:
+    openfeign:
+      # Enveloppe chaque client Feign dans un circuit breaker Resilience4j (fallbackFactory)
+      circuitbreaker:
+        enabled: true
+      httpclient:
+        hc5:
+          enabled: true
 
 server:
   port: 8092
@@ -20,4 +28,15 @@ server:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka/}
+
+booking:
+  payment-deadline-minutes: 60
+  cancellation-deadline-hours: 24
+  circuit-breaker:
+    timeout: 5s
+  scheduler:
+    enabled: true
+    expiration-rate-ms: 300000
+    reminder-rate-ms: 900000
+    initial-delay-ms: 30000

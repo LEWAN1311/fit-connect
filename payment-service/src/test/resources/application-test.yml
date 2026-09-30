@@ -1,0 +1,14 @@
+spring:
+  cloud:
+    config:
+      enabled: false
+    discovery:
+      enabled: false
+  datasource:
+    url: jdbc:h2:mem:paymentdb-test;DB_CLOSE_DELAY=-1
+  jpa:
+    show-sql: false
+
+eureka:
+  client:
+    enabled: false

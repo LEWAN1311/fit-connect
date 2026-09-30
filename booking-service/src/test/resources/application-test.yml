@@ -1,0 +1,19 @@
+spring:
+  cloud:
+    config:
+      enabled: false
+    discovery:
+      enabled: false
+  datasource:
+    url: jdbc:h2:mem:bookingdb-test;DB_CLOSE_DELAY=-1
+  jpa:
+    show-sql: false
+
+eureka:
+  client:
+    enabled: false
+
+booking:
+  scheduler:
+    # Le scheduler est declenche manuellement dans les tests
+    enabled: false

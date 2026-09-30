@@ -15,7 +15,44 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+      httpclient:
+        hc5:
+          enabled: true
+      client:
+        config:
+          default:
+            connect-timeout: 3000
+            read-timeout: 5000
 
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+
+# Regles metier de la reservation
+booking:
+  # Delai de paiement apres la reservation ("Reserve Now, Pay Later")
+  payment-deadline-minutes: 60
+  # Annulation gratuite jusqu'a N heures avant le cours
+  cancellation-deadline-hours: 24
+  circuit-breaker:
+    timeout: 5s
+  scheduler:
+    enabled: true
+    # Expiration des paiements en attente : toutes les 5 minutes
+    expiration-rate-ms: 300000
+    # Rappel des cours a J-1 : toutes les 15 minutes
+    reminder-rate-ms: 900000
+    initial-delay-ms: 30000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,circuitbreakers
+  health:
+    circuitbreakers:
+      enabled: true

@@ -10,9 +10,9 @@ spring:
     config:
       server:
         native:
-          # Recherche des fichiers de configuration dans le dossier config-repo
-          # (execution attendue depuis le dossier du module config-server)
-          search-locations: file:./config-repo
+          # Recherche des fichiers de configuration dans le dossier config-repo :
+          # depuis le dossier du module config-server, ou depuis la racine du projet
+          search-locations: file:./config-repo, file:./config-server/config-repo
 
 management:
   endpoints:

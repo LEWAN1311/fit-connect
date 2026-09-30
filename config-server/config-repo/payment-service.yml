@@ -19,3 +19,8 @@ spring:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+
+# Simulation de la passerelle : montant < seuil accepte, montant >= seuil refuse
+payment:
+  simulation:
+    max-accepted-amount: 100
