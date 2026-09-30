@@ -2,7 +2,8 @@ package org.formation.classservice.controller;
 
 import jakarta.validation.Valid;
 import org.formation.classservice.dto.ClassFilter;
-import org.formation.classservice.dto.FitnessClassRequest;
+import org.formation.classservice.dto.FitnessClassCreateRequest;
+import org.formation.classservice.dto.FitnessClassUpdateRequest;
 import org.formation.classservice.entity.Category;
 import org.formation.classservice.entity.ClassStatus;
 import org.formation.classservice.entity.FitnessClass;
@@ -20,7 +21,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -71,12 +71,13 @@ public class FitnessClassController {
     }
 
     @PostMapping
-    public ResponseEntity<FitnessClass> create(@Valid @RequestBody FitnessClassRequest request) {
+    public ResponseEntity<FitnessClass> create(@Valid @RequestBody FitnessClassCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));
     }
 
-    @PutMapping("/{id}")
-    public FitnessClass update(@PathVariable Long id, @Valid @RequestBody FitnessClassRequest request) {
+    /** Mise a jour partielle : seuls les champs envoyes sont modifies. */
+    @PatchMapping("/{id}")
+    public FitnessClass update(@PathVariable Long id, @Valid @RequestBody FitnessClassUpdateRequest request) {
         return service.update(id, request);
     }
 

@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -78,6 +79,70 @@ class FitnessClassIntegrationTest {
                 .andExpect(jsonPath("$.details.maxParticipants").exists())
                 .andExpect(jsonPath("$.details.price").exists())
                 .andExpect(jsonPath("$.details.dateTime").exists());
+    }
+
+    @Test
+    void shouldPartiallyUpdateClass_withPatch() throws Exception {
+        long id = createClass(10);
+
+        mockMvc.perform(patch("/api/classes/{id}", id).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"price\":22.50,\"instructor\":\"Sophie\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.price").value(22.5))
+                .andExpect(jsonPath("$.instructor").value("Sophie"))
+                // Les champs non envoyes restent inchanges
+                .andExpect(jsonPath("$.name").value("Yoga Vinyasa"))
+                .andExpect(jsonPath("$.description").value("Cours de yoga"))
+                .andExpect(jsonPath("$.category").value("YOGA"))
+                .andExpect(jsonPath("$.maxParticipants").value(10))
+                .andExpect(jsonPath("$.status").value("SCHEDULED"));
+    }
+
+    @Test
+    void shouldRejectInvalidPartialUpdate_andKeepClassUnchanged() throws Exception {
+        long id = createClass(10);
+        String invalid = """
+                {"name":"Yo","description":"   ","durationMinutes":50,"maxParticipants":40,"price":1.00,
+                 "dateTime":"2020-01-01T10:00:00"}
+                """;
+
+        mockMvc.perform(patch("/api/classes/{id}", id).contentType(MediaType.APPLICATION_JSON).content(invalid))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.details.name").exists())
+                .andExpect(jsonPath("$.details.description").exists())
+                .andExpect(jsonPath("$.details.durationMinutes").exists())
+                .andExpect(jsonPath("$.details.maxParticipants").exists())
+                .andExpect(jsonPath("$.details.price").exists())
+                .andExpect(jsonPath("$.details.dateTime").exists());
+
+        mockMvc.perform(get("/api/classes/{id}", id))
+                .andExpect(jsonPath("$.name").value("Yoga Vinyasa"))
+                .andExpect(jsonPath("$.price").value(15.0));
+    }
+
+    @Test
+    void shouldReturn409_whenPatchReducesMaxParticipantsBelowCurrent() throws Exception {
+        long id = createClass(10);
+        mockMvc.perform(patch("/api/classes/{id}/increment", id).param("spots", "6"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(patch("/api/classes/{id}", id).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"maxParticipants\":5}"))
+                .andExpect(status().isConflict());
+
+        mockMvc.perform(patch("/api/classes/{id}", id).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"maxParticipants\":6}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.availableSpots").value(0));
+    }
+
+    @Test
+    void shouldNoLongerAcceptPut() throws Exception {
+        long id = createClass(10);
+
+        mockMvc.perform(put("/api/classes/{id}", id).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"price\":20.00}"))
+                .andExpect(status().isMethodNotAllowed());
     }
 
     @Test

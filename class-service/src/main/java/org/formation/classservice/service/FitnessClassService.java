@@ -1,7 +1,8 @@
 package org.formation.classservice.service;
 
 import org.formation.classservice.dto.ClassFilter;
-import org.formation.classservice.dto.FitnessClassRequest;
+import org.formation.classservice.dto.FitnessClassCreateRequest;
+import org.formation.classservice.dto.FitnessClassUpdateRequest;
 import org.formation.classservice.entity.ClassStatus;
 import org.formation.classservice.entity.FitnessClass;
 import org.formation.classservice.exception.ConflictException;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.function.Consumer;
 
 @Service
 public class FitnessClassService {
@@ -40,26 +42,44 @@ public class FitnessClassService {
     }
 
     @Transactional
-    public FitnessClass create(FitnessClassRequest request) {
+    public FitnessClass create(FitnessClassCreateRequest request) {
         FitnessClass fitnessClass = new FitnessClass();
-        apply(fitnessClass, request);
+        fitnessClass.setName(request.name());
+        fitnessClass.setDescription(request.description());
+        fitnessClass.setInstructor(request.instructor());
+        fitnessClass.setGymLocation(request.gymLocation());
+        fitnessClass.setCategory(request.category());
+        fitnessClass.setLevel(request.level());
+        fitnessClass.setDurationMinutes(request.durationMinutes());
+        fitnessClass.setMaxParticipants(request.maxParticipants());
+        fitnessClass.setPrice(request.price());
+        fitnessClass.setDateTime(request.dateTime());
         fitnessClass.setCurrentParticipants(0);
         fitnessClass.setStatus(ClassStatus.SCHEDULED);
         return repository.save(fitnessClass);
     }
 
+    /** Mise a jour partielle : seuls les champs non null de la requete sont appliques. */
     @Transactional
-    public FitnessClass update(Long id, FitnessClassRequest request) {
+    public FitnessClass update(Long id, FitnessClassUpdateRequest request) {
         FitnessClass fitnessClass = findById(id);
-        if (request.maxParticipants() < fitnessClass.getCurrentParticipants()) {
+        if (request.maxParticipants() != null
+                && request.maxParticipants() < fitnessClass.getCurrentParticipants()) {
             throw new ConflictException("maxParticipants (" + request.maxParticipants()
                     + ") ne peut pas etre inferieur au nombre de participants inscrits ("
                     + fitnessClass.getCurrentParticipants() + ")");
         }
-        apply(fitnessClass, request);
-        if (request.status() != null) {
-            fitnessClass.setStatus(request.status());
-        }
+        setIfPresent(request.name(), fitnessClass::setName);
+        setIfPresent(request.description(), fitnessClass::setDescription);
+        setIfPresent(request.instructor(), fitnessClass::setInstructor);
+        setIfPresent(request.gymLocation(), fitnessClass::setGymLocation);
+        setIfPresent(request.category(), fitnessClass::setCategory);
+        setIfPresent(request.level(), fitnessClass::setLevel);
+        setIfPresent(request.durationMinutes(), fitnessClass::setDurationMinutes);
+        setIfPresent(request.maxParticipants(), fitnessClass::setMaxParticipants);
+        setIfPresent(request.price(), fitnessClass::setPrice);
+        setIfPresent(request.dateTime(), fitnessClass::setDateTime);
+        setIfPresent(request.status(), fitnessClass::setStatus);
         return repository.save(fitnessClass);
     }
 
@@ -113,16 +133,9 @@ public class FitnessClassService {
         }
     }
 
-    private static void apply(FitnessClass target, FitnessClassRequest request) {
-        target.setName(request.name());
-        target.setDescription(request.description());
-        target.setInstructor(request.instructor());
-        target.setGymLocation(request.gymLocation());
-        target.setCategory(request.category());
-        target.setLevel(request.level());
-        target.setDurationMinutes(request.durationMinutes());
-        target.setMaxParticipants(request.maxParticipants());
-        target.setPrice(request.price());
-        target.setDateTime(request.dateTime());
+    private static <T> void setIfPresent(T value, Consumer<T> setter) {
+        if (value != null) {
+            setter.accept(value);
+        }
     }
 }

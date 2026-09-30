@@ -247,9 +247,9 @@
           ]
         },
         {
-          "name": "PUT Mettre à jour un cours",
+          "name": "PATCH Mettre à jour un cours (partiel)",
           "request": {
-            "method": "PUT",
+            "method": "PATCH",
             "header": [
               {
                 "key": "Content-Type",
@@ -269,8 +269,9 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Yoga Flow (maj)\",\n  \"description\": \"Cours cree depuis Postman\",\n  \"instructor\": \"Marie\",\n  \"gymLocation\": \"Paris 11e\",\n  \"category\": \"YOGA\",\n  \"level\": \"INTERMEDIATE\",\n  \"durationMinutes\": 60,\n  \"maxParticipants\": 25,\n  \"price\": 15.0,\n  \"dateTime\": \"{{futureDate}}\"\n}"
-            }
+              "raw": "{\n  \"maxParticipants\": 25,\n  \"level\": \"ADVANCED\"\n}"
+            },
+            "description": "Mise a jour partielle : seuls les champs envoyes sont modifies, les autres restent inchanges."
           },
           "event": [
             {
@@ -279,7 +280,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('Statut 200', () => pm.response.to.have.status(200));",
-                  "pm.test('maxParticipants = 25', () => pm.expect(pm.response.json().maxParticipants).to.eql(25));"
+                  "pm.test('Champs envoyes modifies', () => { const j = pm.response.json(); pm.expect(j.maxParticipants).to.eql(25); pm.expect(j.level).to.eql('ADVANCED'); });",
+                  "pm.test('Champs non envoyes inchanges', () => { const j = pm.response.json(); pm.expect(j.name).to.eql('Yoga Flow'); pm.expect(j.category).to.eql('YOGA'); });"
                 ]
               }
             }

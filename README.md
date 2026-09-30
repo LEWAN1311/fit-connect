@@ -148,7 +148,7 @@ Les erreurs renvoient un JSON homogène :
 | `GET`    | `/api/classes`                         | Liste filtrée et paginée                                 |
 | `GET`    | `/api/classes/{id}`                    | Détail d'un cours                                        |
 | `POST`   | `/api/classes`                         | Créer un cours (`201`)                                   |
-| `PUT`    | `/api/classes/{id}`                    | Mettre à jour un cours                                   |
+| `PATCH`  | `/api/classes/{id}`                    | Mise à jour partielle d'un cours                         |
 | `DELETE` | `/api/classes/{id}`                    | Supprime si aucun inscrit, sinon annule (`CANCELLED`) — `204` |
 | `PATCH`  | `/api/classes/{id}/increment?spots=N`  | Appelé par booking-service — `409` si complet            |
 | `PATCH`  | `/api/classes/{id}/decrement?spots=N`  | Appelé par booking-service                               |
@@ -158,12 +158,20 @@ Filtres de `GET /api/classes` : `category`, `level`, `dateFrom`, `dateTo` (forma
 `location` et `instructor` (contient, insensible à la casse), `status`.
 Pagination : `?page=0&size=10&sort=dateTime,asc`. Réponse : `{"content": [...], "page": {size, number, totalElements, totalPages}}`.
 
-Validation (`FitnessClassRequest`) : `name` ≥ 3 caractères, champs texte obligatoires, `durationMinutes` ∈ {30, 45, 60, 90}
-(contrainte personnalisée `@ValidDuration`), `maxParticipants` entre 5 et 30, `price` ≥ 5.00, `dateTime` dans le futur.
-`currentParticipants` n'est modifiable que par increment/decrement ; un `PUT` ne peut pas baisser `maxParticipants`
-sous le nombre d'inscrits (`409`).
+Deux DTO distincts :
 
-Exemple :
+- **`FitnessClassCreateRequest`** (`POST`) : tous les champs sont obligatoires — `name` ≥ 3 caractères,
+  `durationMinutes` ∈ {30, 45, 60, 90} (contrainte personnalisée `@ValidDuration`), `maxParticipants` entre 5 et 30,
+  `price` ≥ 5.00, `dateTime` dans le futur. Le cours est créé `SCHEDULED` avec 0 participant.
+- **`FitnessClassUpdateRequest`** (`PATCH`) : tous les champs sont optionnels, **un champ absent (ou `null`) n'est pas
+  modifié**. Les champs envoyés respectent les mêmes contraintes (un texte ne peut pas être vide) ; `status` est
+  modifiable (ex. `COMPLETED`).
+
+`PATCH` a été préféré à `PUT` : `PUT` signifie remplacer la ressource entière, alors qu'ici on ne modifie que les
+champs fournis. `currentParticipants` n'est modifiable que par increment/decrement, et un `PATCH` ne peut pas
+baisser `maxParticipants` sous le nombre d'inscrits (`409`).
+
+Exemples :
 
 ```json
 POST /api/classes
@@ -172,6 +180,9 @@ POST /api/classes
   "gymLocation": "Paris 11e", "category": "YOGA", "level": "BEGINNER", "durationMinutes": 60,
   "maxParticipants": 20, "price": 15.00, "dateTime": "2026-10-10T18:00:00"
 }
+
+PATCH /api/classes/1
+{ "level": "INTERMEDIATE", "price": 18.00 }
 ```
 
 ### booking-service — `/api/bookings`
@@ -362,11 +373,11 @@ Les tests utilisent le profil `test` (config-server, Eureka et scheduler désact
 | booking-service      | `BookingFlowIntegrationTest`            | Intégration (SpringBootTest + MockMvc + H2, services distants simulés) | `shouldCompleteFullBookingFlow`, `shouldCancelExpiredBookings`, + annulation avec remboursement, 409, 402, 503, 400 |
 | booking-service      | `ClassServiceClientFallbackFactoryTest` | Unitaire    | Traduction des erreurs Feign (409 → surréservation, 404, panne → 503) |
 | class-service        | `FitnessClassTest`                      | Unitaire    | Incrément / décrément et capacité |
-| class-service        | `FitnessClassIntegrationTest`           | Intégration | CRUD, filtres + pagination, validation, 409, **verrouillage optimiste** |
+| class-service        | `FitnessClassIntegrationTest`           | Intégration | CRUD, filtres + pagination, validation, mise à jour partielle `PATCH`, 409, **verrouillage optimiste** |
 | payment-service      | `PaymentIntegrationTest`                | Intégration | Règle < 100 € / ≥ 100 €, double paiement, remboursement |
 | notification-service | `NotificationIntegrationTest`           | Intégration | Envoi, échec sans destinataire, retry |
 
-Résultat actuel : **34 tests, 0 échec**.
+Résultat actuel : **38 tests, 0 échec**.
 
 ## Collection Postman
 
@@ -374,7 +385,7 @@ Résultat actuel : **34 tests, 0 échec**.
 Les requêtes s'enchaînent via des variables de collection alimentées par les scripts de test (`classId`,
 `bookingId`, …) et les dates sont calculées automatiquement : lancer **Run collection** dans l'ordre.
 
-1. **Gestion des cours** — créer, lister (pagination), filtrer (`category=YOGA&level=INTERMEDIATE`, localisation), rechercher, détail, mise à jour
+1. **Gestion des cours** — créer, lister (pagination), filtrer (`category=YOGA&level=INTERMEDIATE`, localisation), rechercher, détail, mise à jour partielle (`PATCH`)
 2. **Réservation** — réserver 2 places, vérifier `PENDING_PAYMENT`, vérifier les places prises
 3. **Paiement** — payer (carte valide), vérifier `CONFIRMED`, consulter le paiement
 4. **Annulation (dans les délais)** — annuler, vérifier le remboursement (`REFUNDED`) et les places libérées
