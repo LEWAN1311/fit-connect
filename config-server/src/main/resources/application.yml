@@ -1,0 +1,21 @@
+server:
+  port: 8888
+
+spring:
+  application:
+    name: config-server
+  profiles:
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          # Recherche des fichiers de configuration dans le dossier config-repo
+          # (execution attendue depuis le dossier du module config-server)
+          search-locations: file:./config-repo
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
